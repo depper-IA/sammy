@@ -88,40 +88,26 @@ bot.onText(async (ctx, text) => {
   const chatId = String(ctx.chat?.id ?? ctx.from?.id ?? 'default');
   const state = await ensureSession(chatId);
 
-  const progressMsg = await ctx.reply('⏳ Procesando tu solicitud...');
+  const typingInterval = setInterval(() => {
+    ctx.api.sendChatAction(ctx.chat!.id, 'typing').catch(() => {});
+  }, 3000);
 
   try {
-    let iteration = 0;
-    let lastPartialText = '';
-    let lastTools: string[] = [];
-    const MAX_ITERATIONS = 30;
-
     const result = await bridge.prompt(
       state,
       text,
       `Telegram ${chatId}`,
-      (partialText, tools) => {
-        if (partialText !== lastPartialText || tools.length !== lastTools.length) {
-          iteration++;
-
-          if (iteration <= MAX_ITERATIONS) {
-            const progressText = buildProgressMessage(partialText, tools, iteration);
-            ctx.api.editMessageText(ctx.chat!.id, progressMsg.message_id, progressText).catch(() => {});
-          }
-
-          lastPartialText = partialText;
-          lastTools = tools;
-        }
-      }
+      () => {}
     );
 
+    clearInterval(typingInterval);
+
     const finalMessage = result.length > 4000 ? `${result.slice(0, 4000)}\n\n(continúa...)` : result;
-    ctx.api.editMessageText(ctx.chat!.id, progressMsg.message_id, `✅ Listo!\n\n${finalMessage}`).catch(() => {});
+    await ctx.reply(finalMessage);
   } catch (error) {
+    clearInterval(typingInterval);
     const errorMessage = (error as Error).message;
-    ctx.api
-      .editMessageText(ctx.chat!.id, progressMsg.message_id, `❌ Error:\n${errorMessage}`)
-      .catch(() => {});
+    await ctx.reply(`❌ Error:\n${errorMessage}`);
   }
 });
 
@@ -162,32 +148,25 @@ bot.onAudio(async (ctx, payload) => {
       `${payload.duration ? `Duración aproximada: ${payload.duration}s\n` : ''}` +
       `Transcripción:\n${transcript}`;
 
-    const progressMsg = await ctx.reply('⏳ Procesando tu solicitud...');
+    const typingInterval = setInterval(() => {
+      ctx.api.sendChatAction(ctx.chat!.id, 'typing').catch(() => {});
+    }, 3000);
 
-    let iteration = 0;
-    let lastPartialText = '';
-    let lastTools: string[] = [];
+    try {
+      const result = await bridge.prompt(
+        state,
+        prompt,
+        `Telegram ${chatId}`,
+        () => {}
+      );
 
-    const result = await bridge.prompt(
-      state,
-      prompt,
-      `Telegram ${chatId}`,
-      (partialText, tools) => {
-        if (partialText !== lastPartialText || tools.length !== lastTools.length) {
-          iteration++;
-          if (iteration <= 30) {
-            const progressText = buildProgressMessage(partialText, tools, iteration);
-            ctx.api.editMessageText(ctx.chat!.id, progressMsg.message_id, progressText).catch(() => {});
-          }
-          lastPartialText = partialText;
-          lastTools = tools;
-        }
-      }
-    );
-
-    ctx.api
-      .editMessageText(ctx.chat!.id, progressMsg.message_id, `✅ Listo!\n\n${result}`)
-      .catch(() => {});
+      clearInterval(typingInterval);
+      await ctx.reply(result);
+    } catch (error) {
+      clearInterval(typingInterval);
+      const message = (error as Error).message;
+      await ctx.reply(`No pude procesar tu audio:\n${message}`);
+    }
   } catch (error) {
     const message = (error as Error).message;
     await ctx.reply(`No pude procesar tu audio:\n${message}`);
@@ -206,20 +185,17 @@ bot.onPhoto(async (ctx, payload) => {
     return;
   }
 
-  const progressMsg = await ctx.reply('📷 Recibí tu imagen. Analizando con visión...');
+  await ctx.reply('📷 Recibí tu imagen. Analizando con visión...');
 
   try {
     const imageBuffer = await bot.downloadFile(payload.fileId);
     if (imageBuffer.byteLength > maxBytes) {
-      ctx.api
-        .editMessageText(ctx.chat!.id, progressMsg.message_id, 'La imagen es demasiado grande. Máx 10 MB.')
-        .catch(() => {});
+      await ctx.reply('La imagen es demasiado grande. Máx 10 MB.');
       return;
     }
 
     const base64Image = Buffer.from(imageBuffer).toString('base64');
 
-    // 1. Analizar imagen con OpenRouter Vision
     const visionAnalysis = await analyzeImageWithOpenRouter({
       apiKey: config.openrouterApiKey,
       base64Image,
@@ -232,14 +208,10 @@ bot.onPhoto(async (ctx, payload) => {
         'Sé técnico y específico en tu análisis.',
     });
 
-    // 2. Editar mensaje para indicar que se pasó a Sammy
-    await ctx.api.editMessageText(
-      ctx.chat!.id,
-      progressMsg.message_id,
-      '🔍 Análisis completado. Enviando a Sammy para corrección...'
-    );
+    const typingInterval = setInterval(() => {
+      ctx.api.sendChatAction(ctx.chat!.id, 'typing').catch(() => {});
+    }, 3000);
 
-    // 3. Crear prompt enriquecido para OpenCode
     const prompt =
       `[Imagen analizada con OpenRouter Vision (Gemini 2.5 Flash)]\n` +
       `Nombre: ${payload.filename}\n` +
@@ -252,35 +224,18 @@ bot.onPhoto(async (ctx, payload) => {
       `Si es un error de código, aplica los cambios necesarios. ` +
       `Si necesitas más contexto, pregunta qué archivo o sección debo revisar.`;
 
-    let iteration = 0;
-    let lastPartialText = '';
-    let lastTools: string[] = [];
-
     const result = await bridge.prompt(
       state,
       prompt,
       `Telegram ${chatId}`,
-      (partialText, tools) => {
-        if (partialText !== lastPartialText || tools.length !== lastTools.length) {
-          iteration++;
-          if (iteration <= 30) {
-            const progressText = buildProgressMessage(partialText, tools, iteration);
-            ctx.api.editMessageText(ctx.chat!.id, progressMsg.message_id, progressText).catch(() => {});
-          }
-          lastPartialText = partialText;
-          lastTools = tools;
-        }
-      }
+      () => {}
     );
 
-    ctx.api
-      .editMessageText(ctx.chat!.id, progressMsg.message_id, `✅ Listo!\n\n${result}`)
-      .catch(() => {});
+    clearInterval(typingInterval);
+    await ctx.reply(result);
   } catch (error) {
     const message = (error as Error).message;
-    ctx.api
-      .editMessageText(ctx.chat!.id, progressMsg.message_id, `❌ Error al procesar imagen:\n${message}`)
-      .catch(() => {});
+    await ctx.reply(`❌ Error al procesar imagen:\n${message}`);
   }
 });
 
