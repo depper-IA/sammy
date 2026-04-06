@@ -84,10 +84,16 @@ export const webhook = onRequest({
     }
 
     const sammy = await initAgent();
-    await sendTypingAction(config.telegramBotToken, update.message.chat.id);
+    const chatId = update.message.chat.id;
+
+    const typingInterval = setInterval(() => {
+      sendTypingAction(config.telegramBotToken, chatId);
+    }, 3000);
+
     const response = await sammy.run(text);
 
-    await sendTelegramMessage(config.telegramBotToken, update.message.chat.id, response);
+    clearInterval(typingInterval);
+    await sendTelegramMessage(config.telegramBotToken, chatId, response);
     res.status(200).send('OK');
 
   } catch (error) {
