@@ -41,7 +41,12 @@ async function initAgent(): Promise<Agent> {
   return agent;
 }
 
-export const webhook = onRequest(async (req, res) => {
+export const webhook = onRequest({
+  maxInstances: 1,
+  timeoutSeconds: 30,
+  memory: '256MiB',
+  concurrency: 1,
+}, async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
 
@@ -79,6 +84,7 @@ export const webhook = onRequest(async (req, res) => {
     }
 
     const sammy = await initAgent();
+    await sendTypingAction(config.telegramBotToken, update.message.chat.id);
     const response = await sammy.run(text);
 
     await sendTelegramMessage(config.telegramBotToken, update.message.chat.id, response);
@@ -91,9 +97,23 @@ export const webhook = onRequest(async (req, res) => {
 });
 
 async function sendTelegramMessage(token: string, chatId: number, text: string): Promise<void> {
+  const htmlText = text
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+    .replace(/\*(.*?)\*/g, '<i>$1</i>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n/g, '\n');
+
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
+    body: JSON.stringify({ chat_id: chatId, text: htmlText, parse_mode: 'HTML' }),
+  });
+}
+
+async function sendTypingAction(token: string, chatId: number): Promise<void> {
+  await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, action: 'typing' }),
   });
 }
