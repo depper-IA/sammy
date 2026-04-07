@@ -1,16 +1,18 @@
-# Sammy - Personal AI Agent
+# Sammy - Telegram Bridge for OpenCode
 
-A personal AI agent that runs locally with Telegram as the interface.
+Sammy runs locally and uses Telegram as the chat interface, with OpenCode as the execution engine.
 
 ## Features
 
-- Telegram bot with long polling (no web server required)
-- Groq LLM integration (Llama 3.3 70B)
-- OpenRouter fallback when Groq rate limit is reached
-- Persistent memory with SQLite
-- Tool-based agent loop with iteration limits
-- Whitelist-based security (Telegram user IDs)
-- Modular architecture for easy extension
+- Telegram bot with long polling (no webhook required)
+- OpenCode-backed sessions, one per Telegram chat
+- **Streaming de respuestas en tiempo real** - ves el progreso mientras OpenCode trabaja
+- Uses your existing project config in [`opencode.json`](../opencode.json)
+- Reuses your existing OpenCode agents and MCP servers
+- Transcribes Telegram voice notes and audio files with Groq Whisper
+- Permission approvals from Telegram
+- SQLite persistence for chat-to-session mapping
+- Whitelist-based security with Telegram user IDs
 
 ## Quick Start
 
@@ -32,24 +34,64 @@ OPENROUTER_API_KEY="sk-or-v1-your_openrouter_key"
 OPENROUTER_MODEL="openrouter/llama-3.3-70b-instruct"
 DB_PATH="./memory.db"
 MAX_AGENT_ITERATIONS=10
+PROJECT_ROOT="C:/ruta/a/tu/proyecto"
+MAX_AUDIO_FILE_SIZE_MB=20
 ```
+
+For local usage with Telegram, no webhook is needed. Sammy runs with long polling.
+`PROJECT_ROOT` must point to the same repo where your `.opencode` / `opencode.json` live.
+
+## Telegram Setup
+
+1. Create your bot with BotFather and copy the token.
+2. Get your numeric Telegram user ID.
+3. Put both values in `.env`.
+4. Start Sammy with `npm run dev`.
+5. Open Telegram, search your bot, and send `/start`.
+
+If your user ID is not listed in `TELEGRAM_ALLOWED_USER_IDS`, Sammy will reject your messages.
+If `PROJECT_ROOT` points to your repo, Sammy will use OpenCode in that repo and inherit its agents, MCP, permissions and project context.
+If you send a Telegram `voice` or `audio`, Sammy downloads it, transcribes it with Groq, and forwards the transcript to OpenCode.
+
+## Streaming de Respuestas
+
+Cuando envías un mensaje via Telegram, Sammy ahora muestra el progreso en tiempo real:
+
+1. **Mensaje inicial:** "⏳ Procesando tu solicitud..."
+2. **Actualizaciones:** Mientras OpenCode trabaja, Sammy edita el mensaje mostrando:
+   - Iteración actual
+   - Herramientas usadas (últimas 3)
+   - Respuesta parcial (últimos 500 caracteres)
+3. **Resultado final:** Cuando termina, Sammy reemplaza el mensaje con "✅ Listo!" seguido del resultado completo
+
+El streaming te permite ver qué está haciendo el agente sin tener que esperar a que termine completamente.
 
 ## Commands
 
+- `/start` - Confirm the bot is active
 - `/help` - Show help message
-- `/reset` - Clear conversation memory
+- `/agent <nombre>` - Change the OpenCode agent used for this Telegram chat
+- `/new` - Create a fresh OpenCode session for this chat
+- `/status` - Inspect current session status
+- `/diff` - Show the accumulated diff for the current session
+- `/permissions` - List pending permission requests
+- `/approve <requestId> [once|always]` - Approve a permission request
+- `/reject <requestId>` - Reject a permission request
+- `/abort` - Abort the current session execution
+
+You can also send audio notes directly. Sammy will transcribe them with Groq and treat the transcript as your prompt.
+
+**Streaming:** Todas las respuestas muestran progreso en tiempo real.
 
 ## Architecture
 
 ```
 sammy/
 ├── src/
-│   ├── agent/       # Agent loop
 │   ├── bot/         # Telegram bot
 │   ├── config/      # Configuration loader
-│   ├── llm/         # LLM providers (Groq, OpenRouter)
 │   ├── memory/      # SQLite persistence
-│   ├── tools/      # Tool registry
+│   ├── opencode/    # OpenCode bridge
 │   ├── types/      # TypeScript types
 │   └── index.ts    # Entry point
 ├── .env
@@ -58,37 +100,14 @@ sammy/
 └── tsconfig.json
 ```
 
-## Extending Sammy
+## How It Works
 
-### Adding Tools
-
-1. Create a new tool in `src/tools/`:
-```typescript
-export const myTool: Tool = {
-  name: 'my_tool',
-  description: 'Does something useful',
-  execute: async (args) => {
-    return { result: 'done' };
-  },
-};
-```
-
-2. Register it in `ToolRegistry` constructor
-
-3. Rebuild - the agent will automatically use the new tool
-
-### Adding LLM Providers
-
-Implement the `LLMProvider` interface and add to the provider list in `src/index.ts`.
-
-### Future Extensions
-
-The architecture supports easy integration of:
-- **Firebase Cloud Functions** for cloud deployment (see `functions/`)
-- ElevenLabs for text-to-speech
-- Whisper for transcription
-- Additional Telegram channels
-- More LLM providers
+1. Telegram message arrives in Sammy.
+2. Sammy maps the Telegram chat to an OpenCode session.
+3. Sammy sends the prompt to OpenCode in `PROJECT_ROOT`.
+4. OpenCode uses its configured agent, tools, MCP servers and repo context.
+5. Sammy returns the response to Telegram.
+6. If OpenCode requests permissions, you can approve or reject them from Telegram.
 
 ## Firebase Deployment
 

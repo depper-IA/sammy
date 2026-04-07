@@ -14,35 +14,66 @@ export interface LLMProvider {
   complete(messages: Message[], tools?: ToolDefinition[]): Promise<LLMResponse>;
 }
 
+type ProviderMessage = {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_call_id?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
+};
+
+function toProviderMessages(messages: Message[]): ProviderMessage[] {
+  return messages.map((message) => ({
+    role: message.role,
+    content: message.content,
+    ...(message.tool_call_id ? { tool_call_id: message.tool_call_id } : {}),
+    ...(message.tool_calls ? { tool_calls: message.tool_calls } : {}),
+  }));
+}
+
+function toProviderTools(tools?: ToolDefinition[]): Array<Record<string, unknown>> | undefined {
+  if (!tools || tools.length === 0) {
+    return undefined;
+  }
+
+  return tools.map((tool) => ({
+    type: 'function',
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.input_schema,
+    },
+  }));
+}
+
+async function parseError(response: Response, providerName: string): Promise<Error> {
+  const errorText = await response.text();
+  return new Error(`${providerName} API error: ${response.status} - ${errorText}`);
+}
+
 export class GroqProvider implements LLMProvider {
   name = 'groq';
 
   constructor(private apiKey: string) {}
 
   async complete(messages: Message[], tools?: ToolDefinition[]): Promise<LLMResponse> {
-    const systemMessage = messages.find((m) => m.role === 'system');
-    const conversationMessages = messages.filter((m) => m.role !== 'system');
-
     const requestBody: Record<string, unknown> = {
       model: 'llama-3.3-70b-versatile',
-      messages: [
-        ...(systemMessage ? [{ role: 'system', content: systemMessage.content }] : []),
-        ...conversationMessages.map((m) => ({
-          role: m.role,
-          content: m.content,
-          ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
-        })),
-      ],
-      temperature: 0.7,
+      messages: toProviderMessages(messages),
+      temperature: 0.2,
       max_tokens: 1024,
     };
 
-    if (tools && tools.length > 0) {
-      requestBody.tools = tools.map((t) => ({
-        name: t.name,
-        description: t.description,
-        parameters: t.input_schema,
-      }));
+    const providerTools = toProviderTools(tools);
+    if (providerTools) {
+      requestBody.tools = providerTools;
+      requestBody.tool_choice = 'auto';
     }
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -55,8 +86,7 @@ export class GroqProvider implements LLMProvider {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Groq API error: ${response.status} - ${error}`);
+      throw await parseError(response, 'Groq');
     }
 
     const data = await response.json() as {
@@ -79,7 +109,7 @@ export class GroqProvider implements LLMProvider {
       toolCalls: message.tool_calls?.map((tc) => ({
         id: tc.id,
         name: tc.function.name,
-        arguments: JSON.parse(tc.function.arguments),
+        arguments: tc.function.arguments ? JSON.parse(tc.function.arguments) : {},
       })),
     };
   }
@@ -91,29 +121,17 @@ export class OpenRouterProvider implements LLMProvider {
   constructor(private apiKey: string, private model: string) {}
 
   async complete(messages: Message[], tools?: ToolDefinition[]): Promise<LLMResponse> {
-    const systemMessage = messages.find((m) => m.role === 'system');
-    const conversationMessages = messages.filter((m) => m.role !== 'system');
-
     const requestBody: Record<string, unknown> = {
       model: this.model,
-      messages: [
-        ...(systemMessage ? [{ role: 'system', content: systemMessage.content }] : []),
-        ...conversationMessages.map((m) => ({
-          role: m.role,
-          content: m.content,
-          ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
-        })),
-      ],
-      temperature: 0.7,
+      messages: toProviderMessages(messages),
+      temperature: 0.2,
       max_tokens: 1024,
     };
 
-    if (tools && tools.length > 0) {
-      requestBody.tools = tools.map((t) => ({
-        name: t.name,
-        description: t.description,
-        parameters: t.input_schema,
-      }));
+    const providerTools = toProviderTools(tools);
+    if (providerTools) {
+      requestBody.tools = providerTools;
+      requestBody.tool_choice = 'auto';
     }
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -121,13 +139,14 @@ export class OpenRouterProvider implements LLMProvider {
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://local.sammy',
+        'X-Title': 'Sammy Local Agent',
       },
       body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+      throw await parseError(response, 'OpenRouter');
     }
 
     const data = await response.json() as {
@@ -150,7 +169,7 @@ export class OpenRouterProvider implements LLMProvider {
       toolCalls: message.tool_calls?.map((tc) => ({
         id: tc.id,
         name: tc.function.name,
-        arguments: JSON.parse(tc.function.arguments),
+        arguments: tc.function.arguments ? JSON.parse(tc.function.arguments) : {},
       })),
     };
   }

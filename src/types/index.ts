@@ -23,8 +23,11 @@ export interface Message {
 
 export interface ToolCall {
   id: string;
-  name: string;
-  arguments: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
 }
 
 export interface AgentState {
@@ -41,4 +44,9 @@ export interface Config {
   openrouterModel: string;
   dbPath: string;
   maxAgentIterations: number;
+  projectRoot: string;
+  maxAudioFileSizeMb: number;
+  supabaseUrl: string;
+  supabaseServiceKey: string;
+  supabaseSyncIntervalMs: number;
 }

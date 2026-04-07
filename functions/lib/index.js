@@ -29,7 +29,12 @@ async function initAgent() {
     agent = new Agent(providers[0], tools, memory, config.maxAgentIterations);
     return agent;
 }
-export const webhook = onRequest(async (req, res) => {
+export const webhook = onRequest({
+    maxInstances: 1,
+    timeoutSeconds: 30,
+    memory: '256MiB',
+    concurrency: 1,
+}, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     if (req.method === 'OPTIONS') {

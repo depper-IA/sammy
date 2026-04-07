@@ -8,28 +8,42 @@ export class Agent {
   private tools: ToolRegistry;
   private memory: Memory;
   private maxIterations: number;
+  private getProjectContext: () => string;
 
-  constructor(llm: LLMManager, tools: ToolRegistry, memory: Memory, maxIterations: number) {
+  constructor(
+    llm: LLMManager,
+    tools: ToolRegistry,
+    memory: Memory,
+    maxIterations: number,
+    getProjectContext: () => string
+  ) {
     this.llm = llm;
     this.tools = tools;
     this.memory = memory;
     this.maxIterations = maxIterations;
+    this.getProjectContext = getProjectContext;
   }
 
-  async run(userMessage: string): Promise<string> {
-    const systemPrompt = `You are Sammy, a helpful personal AI assistant. You have access to tools that you can use to help the user. Be concise and practical in your responses.`;
+  async run(userMessage: string, conversationId = 'default'): Promise<string> {
+    const projectContext = this.getProjectContext();
+    const systemPrompt = `You are Sammy, a helpful personal AI assistant connected to the user's project repository. Reply in Spanish by default unless the user asks for another language. You can use tools when they improve accuracy. Be concise, practical, and safe.
+
+Always prioritize the repository context before making assumptions. If the user asks about the project, use the available tools to inspect files, search code, and check git state.
+
+Base project context:
+${projectContext}`;
 
     const state: AgentState = {
       messages: [
         { role: 'system', content: systemPrompt },
-        ...this.memory.getMessages(),
+        ...this.memory.getMessages(conversationId),
         { role: 'user', content: userMessage },
       ],
       iterations: 0,
       maxIterations: this.maxIterations,
     };
 
-    this.memory.addMessage('user', userMessage);
+    this.memory.addMessage(conversationId, 'user', userMessage);
 
     let finalResponse = '';
 
@@ -47,8 +61,11 @@ export class Agent {
               tool_calls: [
                 {
                   id: toolCall.id,
-                  name: toolCall.name,
-                  arguments: JSON.stringify(toolCall.arguments),
+                  type: 'function',
+                  function: {
+                    name: toolCall.name,
+                    arguments: JSON.stringify(toolCall.arguments),
+                  },
                 },
               ],
             };
@@ -78,7 +95,7 @@ export class Agent {
           }
         } else {
           finalResponse = response.content;
-          this.memory.addMessage('assistant', response.content);
+          this.memory.addMessage(conversationId, 'assistant', response.content);
           break;
         }
       } catch (error) {
@@ -88,7 +105,7 @@ export class Agent {
     }
 
     if (state.iterations >= state.maxIterations && !finalResponse) {
-      finalResponse = 'I apologize, but I reached the maximum number of iterations. Could you please try a more specific request?';
+      finalResponse = 'Llegué al límite de iteraciones. Intenta con una petición más específica.';
     }
 
     return finalResponse;
