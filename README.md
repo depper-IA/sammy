@@ -1,159 +1,171 @@
-# Sammy - Telegram Bridge for OpenCode
+# 🤖 Sammy — Personal Virtual Assistant
 
-Sammy runs locally and uses Telegram as the chat interface, with OpenCode as the execution engine.
+> Un asistente virtual personal impulsado por agentes de IA, construido con Telegram como interfaz conversacional y OpenCode como motor de ejecución.
 
-## Features
+## 🎯 Descripción
 
-- Telegram bot with long polling (no webhook required)
-- OpenCode-backed sessions, one per Telegram chat
-- **Streaming de respuestas en tiempo real** - ves el progreso mientras OpenCode trabaja
-- Uses your existing project config in [`opencode.json`](../opencode.json)
-- Reuses your existing OpenCode agents and MCP servers
-- Transcribes Telegram voice notes and audio files with Groq Whisper
-- Permission approvals from Telegram
-- SQLite persistence for chat-to-session mapping
-- Whitelist-based security with Telegram user IDs
+Sammy es un asistente de IA que corre localmente y usa Telegram como interfaz de chat. Diseñado para automatizar tareas, aumentar productividad y actuar como puente entre el usuario y agentes de IA avanzados. Todo el código es abierto y puedes usarlo como base para tu propio asistente personal.
 
-## Quick Start
+## ⚡ Características Principales
+
+- **Chat Conversacional via Telegram** — Interactúa con tu asistente desde cualquier lugar
+- **Streaming de Respuestas en Tiempo Real** — Ves el progreso mientras el agente trabaja
+- **Transcripción de Audio/Voice Notes** — Envía notas de voz y las transcribe automáticamente
+- **Agentes de IA Configurables** — Usa diferentes agentes según la tarea
+- **Persistencia con SQLite** — Mantiene contexto entre conversaciones
+- **Seguridad con Whitelist** — Solo usuarios autorizados pueden interactuar
+- **Aprobaciones desde Telegram** — Approva o rechaza requests de permisos directamente
+- **Deploy en Firebase Functions** — Pueder correrlo en la nube o localmente
+
+## 🛠️ Stack Tecnológico
+
+<div align="center">
+
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=flat-square&logo=node.js&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)
+![Telegram](https://img.shields.io/badge/Telegram-26A5E4?style=flat-square&logo=telegram&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
+
+</div>
+
+- **Lenguaje:** TypeScript
+- **Runtime:** Node.js
+- **Interfaz:** Telegram Bot API
+- **Motor IA:** OpenCode + LLMs (OpenRouter/Groq)
+- **Transcripción:** Groq Whisper API
+- **Base de datos:** SQLite
+- **Cloud:** Firebase Functions
+- **APIs:** Telegram Bot API, OpenRouter API
+
+## 🚀 Quick Start
 
 ```bash
+# Clonar el repositorio
+git clone https://github.com/depper-IA/sammy.git
 cd sammy
+
+# Instalar dependencias
 npm install
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus credenciales
+
+# Ejecutar localmente
 npm run dev
 ```
 
-## Configuration
+## ⚙️ Configuración
 
-Create a `.env` file based on `.env.example`:
+Crear archivo `.env` basado en `.env.example`:
 
 ```env
-TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
-TELEGRAM_ALLOWED_USER_IDS="123456789"
-GROQ_API_KEY="gsk_your_groq_key"
-OPENROUTER_API_KEY="sk-or-v1-your_openrouter_key"
+# Telegram
+TELEGRAM_BOT_TOKEN="tu_bot_token"
+TELEGRAM_ALLOWED_USER_IDS="tu_user_id"
+
+# IA / LLM
+OPENROUTER_API_KEY="tu_openrouter_key"
 OPENROUTER_MODEL="openrouter/llama-3.3-70b-instruct"
-DB_PATH="./memory.db"
+
+# Transcripción de audio
+GROQ_API_KEY="tu_groq_key"
+
+# Configuración
+PROJECT_ROOT="/ruta/a/tu/proyecto"
 MAX_AGENT_ITERATIONS=10
-PROJECT_ROOT="C:/ruta/a/tu/proyecto"
 MAX_AUDIO_FILE_SIZE_MB=20
+DB_PATH="./memory.db"
 ```
 
-For local usage with Telegram, no webhook is needed. Sammy runs with long polling.
-`PROJECT_ROOT` must point to the same repo where your `.opencode` / `opencode.json` live.
+## 📱 Comandos Disponibles
 
-## Telegram Setup
+| Comando | Descripción |
+|---------|-------------|
+| `/start` | Verificar que el bot está activo |
+| `/help` | Mostrar mensaje de ayuda |
+| `/agent <nombre>` | Cambiar el agente de IA |
+| `/new` | Crear nueva sesión |
+| `/status` | Ver estado actual |
+| `/diff` | Ver cambios acumulados |
+| `/permissions` | Listar permisos pendientes |
+| `/approve <id>` | Aprobar permiso |
+| `/reject <id>` | Rechazar permiso |
+| `/abort` | Abortar ejecución |
 
-1. Create your bot with BotFather and copy the token.
-2. Get your numeric Telegram user ID.
-3. Put both values in `.env`.
-4. Start Sammy with `npm run dev`.
-5. Open Telegram, search your bot, and send `/start`.
+Envía notas de voz o audio y Sammy las transcribe automáticamente.
 
-If your user ID is not listed in `TELEGRAM_ALLOWED_USER_IDS`, Sammy will reject your messages.
-If `PROJECT_ROOT` points to your repo, Sammy will use OpenCode in that repo and inherit its agents, MCP, permissions and project context.
-If you send a Telegram `voice` or `audio`, Sammy downloads it, transcribes it with Groq, and forwards the transcript to OpenCode.
-
-## Streaming de Respuestas
-
-Cuando envías un mensaje via Telegram, Sammy ahora muestra el progreso en tiempo real:
-
-1. **Mensaje inicial:** "⏳ Procesando tu solicitud..."
-2. **Actualizaciones:** Mientras OpenCode trabaja, Sammy edita el mensaje mostrando:
-   - Iteración actual
-   - Herramientas usadas (últimas 3)
-   - Respuesta parcial (últimos 500 caracteres)
-3. **Resultado final:** Cuando termina, Sammy reemplaza el mensaje con "✅ Listo!" seguido del resultado completo
-
-El streaming te permite ver qué está haciendo el agente sin tener que esperar a que termine completamente.
-
-## Commands
-
-- `/start` - Confirm the bot is active
-- `/help` - Show help message
-- `/agent <nombre>` - Change the OpenCode agent used for this Telegram chat
-- `/new` - Create a fresh OpenCode session for this chat
-- `/status` - Inspect current session status
-- `/diff` - Show the accumulated diff for the current session
-- `/permissions` - List pending permission requests
-- `/approve <requestId> [once|always]` - Approve a permission request
-- `/reject <requestId>` - Reject a permission request
-- `/abort` - Abort the current session execution
-
-You can also send audio notes directly. Sammy will transcribe them with Groq and treat the transcript as your prompt.
-
-**Streaming:** Todas las respuestas muestran progreso en tiempo real.
-
-## Architecture
+## 🏗️ Arquitectura
 
 ```
 sammy/
 ├── src/
-│   ├── bot/         # Telegram bot
-│   ├── config/      # Configuration loader
-│   ├── memory/      # SQLite persistence
-│   ├── opencode/    # OpenCode bridge
-│   ├── types/      # TypeScript types
-│   └── index.ts    # Entry point
-├── .env
+│   ├── agent/        # Lógica de agentes de IA
+│   ├── audio/        # Transcripción de audio
+│   ├── bot/          # Bot de Telegram
+│   ├── commands/     # Comandos del bot
+│   ├── config/       # Cargador de configuración
+│   ├── memory/       # Persistencia SQLite
+│   ├── opencode/     # Bridge hacia OpenCode
+│   ├── llm/          # Integración con LLMs
+│   ├── sync/         # Sincronización de estados
+│   ├── tools/        # Herramientas del agente
+│   └── types/        # Tipos TypeScript
+├── functions/        # Firebase Cloud Functions
 ├── .env.example
-├── package.json
-└── tsconfig.json
+└── package.json
 ```
 
-## How It Works
-
-1. Telegram message arrives in Sammy.
-2. Sammy maps the Telegram chat to an OpenCode session.
-3. Sammy sends the prompt to OpenCode in `PROJECT_ROOT`.
-4. OpenCode uses its configured agent, tools, MCP servers and repo context.
-5. Sammy returns the response to Telegram.
-6. If OpenCode requests permissions, you can approve or reject them from Telegram.
-
-## Firebase Deployment
-
-### 1. Renombrar y mover service account
-
-Descarga el JSON, renómbralo a `service-account.json` y ponlo en `sammy/`:
-
-```powershell
-# En PowerShell
-mv ~/Downloads/tu-archivo-xxxx.json sammy/service-account.json
-```
-
-### 2. Configurar variables en Firebase
-
-Desde el CLI de Firebase (en `sammy/`):
+## ☁️ Deploy en Firebase
 
 ```bash
-cd sammy
+# Login en Firebase
 firebase login
+
+# Configurar variables
 firebase functions:config:set \
-  telegram.token="YOUR_TELEGRAM_TOKEN" \
-  telegram.allowed_ids="1049458877" \
-  groq.key="YOUR_GROQ_KEY"
-```
+  telegram.token="tu_token" \
+  telegram.allowed_ids="tu_id"
 
-### 3. Instalar y desplegar
-
-```bash
-cd sammy/functions
-npm install
+# Deploy
+cd functions && npm install
 firebase deploy --only functions
+
+# Configurar webhook en Telegram
+curl -X POST "https://api.telegram.org/botTU_TOKEN/setWebhook" \
+  -d "url=https://tu-proyecto.cloudfunctions.net/webhook"
 ```
 
-### 4. Configurar Webhook en Telegram
+## 💡 Cómo Funciona
 
-Después del deploy, Firebase te dará una URL como:
-`https://us-central1-tu-proyecto.cloudfunctions.net/webhook`
+1. **Mensaje llega via Telegram** → Sammy lo recibe
+2. **Mapea el chat a una sesión** → Contexto del usuario
+3. **Envía el prompt a OpenCode** → Motor de IA
+4. **OpenCode ejecuta con sus tools** → Agente trabaja
+5. **Respuesta vuelve a Telegram** → Streaming en tiempo real
+6. **Permisos solicitados** → Usuario approve/reject desde Telegram
 
-Escríbele a [@BotFather](https://t.me/botfather) en Telegram:
-```
-/setdomain
-```
-Y selecciona tu bot, luego ingresa la URL.
+## 🎨 Presentación en tu CV
 
-O vía API:
-```bash
-curl -X POST "https://api.telegram.org/bot8302135250:AAHp2WgNZpjOKVvXjKXWW3MQU9u5nq1z2iM/setWebhook" \
-  -d "url=https://us-central1-tu-proyecto.cloudfunctions.net/webhook"
-```
+**Cómo lo presentas:**
+
+> *"Personal AI Assistant — Desarrollé un asistente virtual conversacional que usa Telegram como interfaz y agentes de IA como motor. Implementé streaming de respuestas en tiempo real, transcripción de audio con Whisper, persistencia de contexto, y deploy en Firebase Functions."*
+
+**Skills que demuestra:**
+- TypeScript & Node.js
+- Integración de APIs (Telegram, OpenRouter, Groq)
+- Arquitectura de agentes de IA
+- Firebase Cloud Functions
+- Diseño de interfaces conversacionales
+- Persistencia de datos (SQLite)
+
+## 📂 Repos Relacionados
+
+- [samwilkie-portfolio](https://github.com/depper-IA/samwilkie-portfolio) — Portfolio personal
+- [Lookitry](https://lookitry.com) — SaaS de probador virtual con IA
+- [WilkieDevs](https://wilkiedevs.com) — Agencia digital
+
+---
+
+*Creado por [Samuel Wilkie](https://sam.wilkiedevs.com) — Full-Stack Developer & AI Specialist*
