@@ -1,23 +1,25 @@
-# 🤖 Sammy — Personal Virtual Assistant
+# Sammy - Personal Virtual Assistant
 
 > Un asistente virtual personal impulsado por agentes de IA, construido con Telegram como interfaz conversacional y OpenCode como motor de ejecución.
 
-## 🎯 Descripción
+## Descripcion
 
 Sammy es un asistente de IA que corre localmente y usa Telegram como interfaz de chat. Diseñado para automatizar tareas, aumentar productividad y actuar como puente entre el usuario y agentes de IA avanzados. Todo el código es abierto y puedes usarlo como base para tu propio asistente personal.
 
-## ⚡ Características Principales
+## Caracteristicas Principales
 
-- **Chat Conversacional via Telegram** — Interactúa con tu asistente desde cualquier lugar
-- **Streaming de Respuestas en Tiempo Real** — Ves el progreso mientras el agente trabaja
-- **Transcripción de Audio/Voice Notes** — Envía notas de voz y las transcribe automáticamente
-- **Agentes de IA Configurables** — Usa diferentes agentes según la tarea
-- **Persistencia con SQLite** — Mantiene contexto entre conversaciones
-- **Seguridad con Whitelist** — Solo usuarios autorizados pueden interactuar
-- **Aprobaciones desde Telegram** — Approva o rechaza requests de permisos directamente
-- **Deploy en Firebase Functions** — Pueder correrlo en la nube o localmente
+| Caracteristica | Descripcion |
+|----------------|-------------|
+| Chat Conversacional via Telegram | Interactúa con tu asistente desde cualquier lugar |
+| Streaming de Respuestas en Tiempo Real | Ves el progreso mientras el agente trabaja |
+| Transcripcion de Audio/Voice Notes | Envía notas de voz y las transcribe automaticamente |
+| Agentes de IA Configurables | Usa diferentes agentes según la tarea |
+| Persistencia con SQLite | Mantiene contexto entre conversaciones |
+| Seguridad con Whitelist | Solo usuarios autorizados pueden interactuar |
+| Aprobaciones desde Telegram | Approva o rechaza requests de permisos directamente |
+| Deploy en Firebase Functions | Pueder correrlo en la nube o localmente |
 
-## 🛠️ Stack Tecnológico
+## Stack Tecnologico
 
 <div align="center">
 
@@ -29,16 +31,18 @@ Sammy es un asistente de IA que corre localmente y usa Telegram como interfaz de
 
 </div>
 
-- **Lenguaje:** TypeScript
-- **Runtime:** Node.js
-- **Interfaz:** Telegram Bot API
-- **Motor IA:** OpenCode + LLMs (OpenRouter/Groq)
-- **Transcripción:** Groq Whisper API
-- **Base de datos:** SQLite
-- **Cloud:** Firebase Functions
-- **APIs:** Telegram Bot API, OpenRouter API
+| Componente | Tecnologia |
+|------------|------------|
+| Lenguaje | TypeScript |
+| Runtime | Node.js |
+| Interfaz | Telegram Bot API |
+| Motor IA | OpenCode + LLMs (OpenRouter/Groq) |
+| Transcripcion | Groq Whisper API |
+| Base de datos | SQLite |
+| Cloud | Firebase Functions |
+| APIs | Telegram Bot API, OpenRouter API |
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clonar el repositorio
@@ -56,7 +60,7 @@ cp .env.example .env
 npm run dev
 ```
 
-## ⚙️ Configuración
+## Configuracion
 
 Crear archivo `.env` basado en `.env.example`:
 
@@ -69,55 +73,55 @@ TELEGRAM_ALLOWED_USER_IDS="tu_user_id"
 OPENROUTER_API_KEY="tu_openrouter_key"
 OPENROUTER_MODEL="openrouter/llama-3.3-70b-instruct"
 
-# Transcripción de audio
+# Transcripcion de audio
 GROQ_API_KEY="tu_groq_key"
 
-# Configuración
+# Configuracion
 PROJECT_ROOT="/ruta/a/tu/proyecto"
 MAX_AGENT_ITERATIONS=10
 MAX_AUDIO_FILE_SIZE_MB=20
 DB_PATH="./memory.db"
 ```
 
-## 📱 Comandos Disponibles
+## Comandos Disponibles
 
-| Comando | Descripción |
+| Comando | Descripcion |
 |---------|-------------|
-| `/start` | Verificar que el bot está activo |
-| `/help` | Mostrar mensaje de ayuda |
-| `/agent <nombre>` | Cambiar el agente de IA |
-| `/new` | Crear nueva sesión |
-| `/status` | Ver estado actual |
-| `/diff` | Ver cambios acumulados |
-| `/permissions` | Listar permisos pendientes |
-| `/approve <id>` | Aprobar permiso |
-| `/reject <id>` | Rechazar permiso |
-| `/abort` | Abortar ejecución |
+| /start | Verificar que el bot está activo |
+| /help | Mostrar mensaje de ayuda |
+| /agent \<nombre\> | Cambiar el agente de IA |
+| /new | Crear nueva sesion |
+| /status | Ver estado actual |
+| /diff | Ver cambios acumulados |
+| /permissions | Listar permisos pendientes |
+| /approve \<id\> | Aprobar permiso |
+| /reject \<id\> | Rechazar permiso |
+| /abort | Abortar ejecucion |
 
-Envía notas de voz o audio y Sammy las transcribe automáticamente.
+Envía notas de voz o audio y Sammy las transcribe automaticamente.
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 ```
 sammy/
-├── src/
-│   ├── agent/        # Lógica de agentes de IA
-│   ├── audio/        # Transcripción de audio
-│   ├── bot/          # Bot de Telegram
-│   ├── commands/     # Comandos del bot
-│   ├── config/       # Cargador de configuración
-│   ├── memory/       # Persistencia SQLite
-│   ├── opencode/     # Bridge hacia OpenCode
-│   ├── llm/          # Integración con LLMs
-│   ├── sync/         # Sincronización de estados
-│   ├── tools/        # Herramientas del agente
-│   └── types/        # Tipos TypeScript
-├── functions/        # Firebase Cloud Functions
-├── .env.example
-└── package.json
+|-- src/
+|   |-- agent/        # Logica de agentes de IA
+|   |-- audio/        # Transcripcion de audio
+|   |-- bot/          # Bot de Telegram
+|   |-- commands/     # Comandos del bot
+|   |-- config/       # Cargador de configuracion
+|   |-- memory/       # Persistencia SQLite
+|   |-- opencode/     # Bridge hacia OpenCode
+|   |-- llm/          # Integracion con LLMs
+|   |-- sync/         # Sincronizacion de estados
+|   |-- tools/        # Herramientas del agente
+|   |-- types/        # Tipos TypeScript
+|-- functions/        # Firebase Cloud Functions
+|-- .env.example
+|-- package.json
 ```
 
-## ☁️ Deploy en Firebase
+## Deploy en Firebase
 
 ```bash
 # Login en Firebase
@@ -137,35 +141,35 @@ curl -X POST "https://api.telegram.org/botTU_TOKEN/setWebhook" \
   -d "url=https://tu-proyecto.cloudfunctions.net/webhook"
 ```
 
-## 💡 Cómo Funciona
+## Como Funciona
 
-1. **Mensaje llega via Telegram** → Sammy lo recibe
-2. **Mapea el chat a una sesión** → Contexto del usuario
-3. **Envía el prompt a OpenCode** → Motor de IA
-4. **OpenCode ejecuta con sus tools** → Agente trabaja
-5. **Respuesta vuelve a Telegram** → Streaming en tiempo real
-6. **Permisos solicitados** → Usuario approve/reject desde Telegram
+1. **Mensaje llega via Telegram** - Sammy lo recibe
+2. **Mapea el chat a una sesion** - Contexto del usuario
+3. **Envia el prompt a OpenCode** - Motor de IA
+4. **OpenCode ejecuta con sus tools** - Agente trabaja
+5. **Respuesta vuelve a Telegram** - Streaming en tiempo real
+6. **Permisos solicitados** - Usuario approve/reject desde Telegram
 
-## 🎨 Presentación en tu CV
+## Presentacion en tu CV
 
-**Cómo lo presentas:**
+**Como lo presentas:**
 
-> *"Personal AI Assistant — Desarrollé un asistente virtual conversacional que usa Telegram como interfaz y agentes de IA como motor. Implementé streaming de respuestas en tiempo real, transcripción de audio con Whisper, persistencia de contexto, y deploy en Firebase Functions."*
+> *"Personal AI Assistant - Desarrollé un asistente virtual conversacional que usa Telegram como interfaz y agentes de IA como motor. Implementé streaming de respuestas en tiempo real, transcripcion de audio con Whisper, persistencia de contexto, y deploy en Firebase Functions."*
 
-**Skills que demuestra:**
+**Skills que demonstra:**
 - TypeScript & Node.js
-- Integración de APIs (Telegram, OpenRouter, Groq)
+- Integracion de APIs (Telegram, OpenRouter, Groq)
 - Arquitectura de agentes de IA
 - Firebase Cloud Functions
-- Diseño de interfaces conversacionales
+- Diseno de interfaces conversacionales
 - Persistencia de datos (SQLite)
 
-## 📂 Repos Relacionados
+## Repos Relacionados
 
-- [samwilkie-portfolio](https://github.com/depper-IA/samwilkie-portfolio) — Portfolio personal
-- [Lookitry](https://lookitry.com) — SaaS de probador virtual con IA
-- [WilkieDevs](https://wilkiedevs.com) — Agencia digital
+- [samwilkie-portfolio](https://github.com/depper-IA/samwilkie-portfolio) - Portfolio personal
+- [Lookitry](https://lookitry.com) - SaaS de probador virtual con IA
+- [WilkieDevs](https://wilkiedevs.com) - Agencia digital
 
 ---
 
-*Creado por [Samuel Wilkie](https://sam.wilkiedevs.com) — Full-Stack Developer & AI Specialist*
+*Creado por [Samuel Wilkie](https://sam.wilkiedevs.com) - Full-Stack Developer & AI Specialist*
